@@ -2,6 +2,7 @@
 
 namespace Laravel\Nova\LogViewer\Http\Controllers\Pages;
 
+use Exception;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\File as FileFacade;
 use Inertia\Inertia;
@@ -37,13 +38,16 @@ class LogViewerController extends Controller
     /**
      * Fetch the latest content for a log.
      *
-     * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function fetch(NovaRequest $request)
     {
+        if (! str_starts_with(realpath(storage_path('logs/'.$request->log)), realpath(storage_path()))) {
+            throw new Exception('Invalid log path.');
+        }
+
         $request->validate(['lastLine' => ['numeric']]);
-        $logFile = new File(storage_path('logs/' . $request->log));
+        $logFile = new File(storage_path('logs/'.$request->log));
         $lines = $logFile->contentAfterLine($request->lastLine);
         $lastLine = $request->lastLine + substr_count($lines, PHP_EOL);
 
