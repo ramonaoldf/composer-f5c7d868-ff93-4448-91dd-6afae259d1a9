@@ -9,17 +9,20 @@
         <div class="flex items-center">
           <SelectControl
             v-if="logs.length > 1"
-            v-model:selected="selectedLogFile.value"
-            size="sm"
+            :selected="selectedLogFile.value"
+            @update:selected="handleLogChange"
             :options="logs"
-            @change="handleLogChange"
+            size="sm"
           >
             <option value="" selected disabled>
               {{ __('Select a log file...') }}
             </option>
           </SelectControl>
-          <p v-else class="font-bold truncate">
+          <p v-else-if="logs.length == 1" class="font-bold truncate">
             {{ selectedLogFile.value }}
+          </p>
+          <p v-else>
+            &mdash;
           </p>
         </div>
 
@@ -28,7 +31,7 @@
         >
           <ToolbarButton
             @click="replaceContent"
-            type="refresh"
+            icon-name="refresh"
             v-tooltip="__('Refresh')"
           />
 
@@ -38,20 +41,20 @@
               'text-green-500': playing,
               'text-gray-500': !playing,
             }"
-            type="clock"
+            icon-name="clock"
             class="w-8 h-8"
             v-tooltip="playing ? __('Stop polling') : __('Start polling')"
           />
 
           <ToolbarButton
             @click="scrollToTop"
-            type="arrow-up"
+            icon-name="arrow-up"
             v-tooltip="__('Scroll to top')"
           />
 
           <ToolbarButton
             @click="scrollToBottom"
-            type="arrow-down"
+            icon-name="arrow-down"
             v-tooltip="__('Scroll to bottom')"
           />
         </div>
@@ -71,15 +74,8 @@
 <script>
 import CodeMirror from 'codemirror'
 import ToolbarButton from '../components/ToolbarButton.vue'
-import inflector from 'inflector-js'
-import isString from 'lodash/isString'
-
-function singularOrPlural(value, suffix) {
-  if (isString(suffix) && suffix.match(/^(.*)[A-Za-zÀ-ÖØ-öø-ÿ]$/) == null)
-    return suffix
-  if (value > 1 || value == 0) return inflector.pluralize(suffix)
-  return inflector.singularize(suffix)
-}
+import { singularOrPlural } from 'laravel-nova-util'
+import isNil from 'lodash/isNil'
 
 export default {
   codemirror: null,
@@ -166,6 +162,10 @@ export default {
     },
 
     fetchContent() {
+      if (isNil(this.selectedLogFile)) {
+        return
+      }
+
       this.requestContent().then(
         ({ data: { content, lastLine, numberOfLines } }) => {
           this.lastLine = lastLine
@@ -181,6 +181,11 @@ export default {
 
     replaceContent() {
       this.lastLine = 0
+
+      if (isNil(this.selectedLogFile)) {
+        return
+      }
+
       this.requestContent().then(
         ({ data: { content, lastLine, numberOfLines } }) => {
           this.lastLine = lastLine
